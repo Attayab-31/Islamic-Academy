@@ -1,0 +1,86 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Teacher {
+  id              String   @id @default(cuid())
+  slug            String   @unique
+  name            String
+  gender          String
+  languages       String
+  specializations String
+  email           String?
+  timezone        String   @default("UTC")
+  createdAt       DateTime @default(now())
+  bookings        Booking[]
+  availability    AvailabilitySlot[]
+}
+
+model AvailabilitySlot {
+  id        String   @id @default(cuid())
+  teacherId String
+  teacher   Teacher  @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  dayOfWeek Int
+  startHour Int
+  startMin  Int      @default(0)
+  duration  Int      @default(45)
+  timezone  String   @default("UTC")
+}
+
+model Booking {
+  id              String   @id @default(cuid())
+  reference       String   @unique
+  courseSlug      String
+  programSlug     String?
+  teacherId       String?
+  teacher         Teacher? @relation(fields: [teacherId], references: [id])
+  learnerName     String
+  learnerAge      String
+  level           String
+  language        String
+  teacherGender   String
+  contactName     String
+  contactEmail    String
+  contactPhone    String?
+  country         String
+  timezone        String
+  slotStart       DateTime
+  slotEnd         DateTime
+  zoomLink        String?
+  status          String   @default("confirmed")
+  whatsappOptIn   Boolean  @default(false)
+  createdAt       DateTime @default(now())
+}
+
+model Enrollment {
+  id                  String   @id @default(cuid())
+  fullName            String
+  email               String
+  phone               String?
+  country             String
+  courseSlug          String
+  planName            String
+  amount              Int
+  currency            String
+  paymentMethod       String   @default("bank_transfer")
+  paymentReference    String?
+  paymentStatus       String   @default("pending")
+  transferBank        String?
+  transferAccountName String?
+  transferAccountNumber String?
+  adminNotes          String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+}
+
+model Lead {
+  id        String   @id @default(cuid())
+  email     String
+  source    String?
+  createdAt DateTime @default(now())
+}
