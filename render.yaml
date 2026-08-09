@@ -26,6 +26,12 @@ services:
         sync: false
       - key: PORTAL_PASSWORD
         sync: false
+      - key: TEACHER_EMAIL
+        sync: false
+      - key: TEACHER_PASSWORD
+        sync: false
+      - key: CRON_SECRET
+        sync: false
       - key: EMAIL_PROVIDER
         value: resend
       - key: EMAIL_FROM

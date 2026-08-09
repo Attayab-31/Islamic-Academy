@@ -1,4 +1,7 @@
-import "dotenv/config";
+function appendQueryParam(url: string, key: string, value: string): string {
+    const separator = url.includes("?") ? "&" : "?";
+    return `${url}${separator}${key}=${value}`;
+}
 
 function normalizeSupabaseUrl(rawUrl: string): string {
     const trimmed = rawUrl.trim();
@@ -7,27 +10,27 @@ function normalizeSupabaseUrl(rawUrl: string): string {
         return trimmed;
     }
 
-    if (trimmed.includes("supabase.com") && !trimmed.includes("sslmode=")) {
-        return trimmed.includes("?") ? `${trimmed}&sslmode=require` : `${trimmed}?sslmode=require`;
+    let url = trimmed;
+
+    if (url.includes("supabase.com")) {
+        if (!url.includes("sslmode=")) {
+            url = appendQueryParam(url, "sslmode", "require");
+        }
+
+        // Supabase transaction pooler (port 6543) requires pgbouncer mode for Prisma.
+        if (url.includes(":6543/") && !url.includes("pgbouncer=")) {
+            url = appendQueryParam(url, "pgbouncer", "true");
+        }
     }
 
-    return trimmed;
+    return url;
 }
 
 export function getDatabaseUrl(): string {
     const databaseUrl = process.env.DATABASE_URL?.trim();
-    if (databaseUrl) {
-        return normalizeSupabaseUrl(databaseUrl);
+    if (!databaseUrl) {
+        throw new Error("DATABASE_URL is not set. Configure your Supabase PostgreSQL connection string in the environment.");
     }
 
-    if (process.env.NODE_ENV === "production") {
-        throw new Error("DATABASE_URL must be configured for production deployments.");
-    }
-
-    const localDatabaseUrl = process.env.LOCAL_DATABASE_URL?.trim();
-    if (localDatabaseUrl) {
-        return localDatabaseUrl;
-    }
-
-    throw new Error("DATABASE_URL is not set. Configure your Supabase PostgreSQL connection string in the environment.");
+    return normalizeSupabaseUrl(databaseUrl);
 }

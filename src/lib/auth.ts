@@ -64,54 +64,65 @@ export function toAuthUser(user: {
 }
 
 async function ensureDefaultUsers() {
-  const adminEmail = process.env.ADMIN_EMAIL?.trim().toLowerCase() || (process.env.NODE_ENV === "production" ? undefined : "admin@islamicacademy.local");
-  const adminPassword = process.env.ADMIN_PASSWORD || (process.env.NODE_ENV === "production" ? undefined : "academy2026");
-  const portalEmail = process.env.PORTAL_EMAIL?.trim().toLowerCase() || (process.env.NODE_ENV === "production" ? undefined : "portal@islamicacademy.local");
-  const portalPassword = process.env.PORTAL_PASSWORD || (process.env.NODE_ENV === "production" ? undefined : "academy2026");
-  const teacherEmail = process.env.TEACHER_EMAIL?.trim().toLowerCase() || (process.env.NODE_ENV === "production" ? undefined : "teacher@islamicacademy.local");
-  const teacherPassword = process.env.TEACHER_PASSWORD || (process.env.NODE_ENV === "production" ? undefined : "academy2026");
+  const isProduction = process.env.NODE_ENV === "production";
+  const adminEmail =
+    process.env.ADMIN_EMAIL?.trim().toLowerCase() ||
+    (isProduction ? undefined : "admin@islamicacademy.local");
+  const adminPassword =
+    process.env.ADMIN_PASSWORD || (isProduction ? undefined : "academy2026");
+  const portalEmail =
+    process.env.PORTAL_EMAIL?.trim().toLowerCase() ||
+    (isProduction ? undefined : "portal@islamicacademy.local");
+  const portalPassword =
+    process.env.PORTAL_PASSWORD || (isProduction ? undefined : "academy2026");
+  const teacherEmail =
+    process.env.TEACHER_EMAIL?.trim().toLowerCase() ||
+    (isProduction ? undefined : "teacher@islamicacademy.local");
+  const teacherPassword =
+    process.env.TEACHER_PASSWORD || (isProduction ? undefined : "academy2026");
 
-  if (process.env.NODE_ENV === "production" && (!adminEmail || !adminPassword || !portalEmail || !portalPassword || !teacherEmail || !teacherPassword)) {
-    throw new Error("Missing auth bootstrap credentials in production.");
+  if (isProduction && (!adminEmail || !adminPassword)) {
+    throw new Error("Missing admin bootstrap credentials in production. Set ADMIN_EMAIL and ADMIN_PASSWORD.");
+  }
+
+  const bootstrapUsers = [
+    adminEmail && adminPassword
+      ? { email: adminEmail, password: adminPassword, name: "Admin User", role: UserRole.ADMIN }
+      : null,
+    portalEmail && portalPassword
+      ? { email: portalEmail, password: portalPassword, name: "Family Portal User", role: UserRole.PARENT }
+      : null,
+    teacherEmail && teacherPassword
+      ? { email: teacherEmail, password: teacherPassword, name: "Teacher User", role: UserRole.TEACHER }
+      : null,
+  ].filter(Boolean) as Array<{
+    email: string;
+    password: string;
+    name: string;
+    role: UserRole;
+  }>;
+
+  if (bootstrapUsers.length === 0) {
+    return;
   }
 
   const existingUsers = await prisma.user.findMany({
-    where: { email: { in: [adminEmail, portalEmail, teacherEmail].filter(Boolean) as string[] } },
+    where: { email: { in: bootstrapUsers.map((user) => user.email) } },
     select: { email: true },
   });
   const existingEmails = new Set(existingUsers.map((user) => user.email));
 
-  if (adminEmail && !existingEmails.has(adminEmail)) {
-    await prisma.user.create({
-      data: {
-        email: adminEmail,
-        name: "Admin User",
-        passwordHash: await hashPassword(adminPassword!),
-        role: UserRole.ADMIN,
-        emailVerified: new Date(),
-      },
-    });
-  }
+  for (const user of bootstrapUsers) {
+    if (existingEmails.has(user.email)) {
+      continue;
+    }
 
-  if (portalEmail && !existingEmails.has(portalEmail)) {
     await prisma.user.create({
       data: {
-        email: portalEmail,
-        name: "Family Portal User",
-        passwordHash: await hashPassword(portalPassword!),
-        role: UserRole.PARENT,
-        emailVerified: new Date(),
-      },
-    });
-  }
-
-  if (teacherEmail && !existingEmails.has(teacherEmail)) {
-    await prisma.user.create({
-      data: {
-        email: teacherEmail,
-        name: "Teacher User",
-        passwordHash: await hashPassword(teacherPassword!),
-        role: UserRole.TEACHER,
+        email: user.email,
+        name: user.name,
+        passwordHash: await hashPassword(user.password),
+        role: user.role,
         emailVerified: new Date(),
       },
     });

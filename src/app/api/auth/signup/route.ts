@@ -47,7 +47,7 @@ export async function POST(request: Request) {
     setSessionCookie(response, token);
     return response;
   } catch (error) {
-    console.error(error);
+    console.error("Signup failed:", error instanceof Error ? error.message : error);
     return NextResponse.json({ error: "Signup failed." }, { status: 500 });
   }
 }

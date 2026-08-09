@@ -1,5 +1,23 @@
 import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
 
 export async function GET() {
-    return NextResponse.json({ ok: true, service: "islamic-academy", mode: "direct_transfer" });
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+    return NextResponse.json({
+      ok: true,
+      service: "islamic-academy",
+      database: "connected",
+    });
+  } catch (error) {
+    console.error("Health check failed:", error);
+    return NextResponse.json(
+      {
+        ok: false,
+        service: "islamic-academy",
+        database: "disconnected",
+      },
+      { status: 503 }
+    );
+  }
 }
