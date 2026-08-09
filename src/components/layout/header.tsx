@@ -45,6 +45,9 @@ export function Header() {
         </nav>
 
         <div className="flex items-center gap-2">
+          <Link href="/login" className="hidden text-sm text-muted-foreground transition-colors hover:text-gold sm:inline-flex">
+            Login
+          </Link>
           <Button
             variant="ghost"
             size="icon"
@@ -77,6 +80,9 @@ export function Header() {
                 {link.label}
               </Link>
             ))}
+            <Link href="/login" onClick={() => setOpen(false)} className="text-lg focus-ring">
+              Login
+            </Link>
             <Link href="/free-trial" onClick={() => setOpen(false)}>
               <Button className="w-full">Book Free Trial</Button>
             </Link>

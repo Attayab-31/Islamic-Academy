@@ -1,0 +1,49 @@
+services:
+  - type: web
+    name: islamic-academy-web
+    env: node
+    plan: starter
+    region: oregon
+    rootDir: .
+    buildCommand: npm install && npm run db:generate && npm run db:push && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: AUTH_SECRET
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+      - key: NEXT_PUBLIC_SITE_URL
+        sync: false
+      - key: NEXT_PUBLIC_WHATSAPP_NUMBER
+        sync: false
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: PORTAL_EMAIL
+        sync: false
+      - key: PORTAL_PASSWORD
+        sync: false
+      - key: EMAIL_PROVIDER
+        value: resend
+      - key: EMAIL_FROM
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: SENDGRID_API_KEY
+        sync: false
+      - key: MEETING_PROVIDER
+        value: zoom
+      - key: ZOOM_ACCOUNT_ID
+        sync: false
+      - key: ZOOM_CLIENT_ID
+        sync: false
+      - key: ZOOM_CLIENT_SECRET
+        sync: false
+  - type: postgres
+    name: islamic-academy-db
+    plan: starter
+    region: oregon
+    ipAllowList: []

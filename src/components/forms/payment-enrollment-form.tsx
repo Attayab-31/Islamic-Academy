@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
+import { courses } from "@/data/courses";
 
 export function PaymentEnrollmentForm() {
     const [submitted, setSubmitted] = useState(false);
@@ -12,11 +13,12 @@ export function PaymentEnrollmentForm() {
         email: "",
         phone: "",
         country: "",
-        courseSlug: "quran-reading-qaida",
-        planName: "Direct Transfer Enrollment",
+        courseSlug: courses[0]?.slug ?? "quran-reading-qaida",
+        planName: "Monthly Block Enrollment",
         amount: "199",
         currency: "USD",
         paymentReference: "",
+        preferredBlock: "Monday 10:00 AM",
         transferBank: "",
         transferAccountName: "",
         transferAccountNumber: "",
@@ -34,6 +36,7 @@ export function PaymentEnrollmentForm() {
                 amount: Number(form.amount),
                 paymentMethod: "bank_transfer",
                 paymentStatus: "pending_review",
+                enrollmentType: "monthly-block",
             }),
         });
 
@@ -49,7 +52,7 @@ export function PaymentEnrollmentForm() {
         return (
             <div className="rounded-xl border border-emerald/40 bg-emerald/10 p-6 text-sm text-emerald">
                 <h3 className="font-display text-xl text-foreground">Enrollment received</h3>
-                <p className="mt-2">Thank you. We have received your transfer details and will confirm your booking within one business day.</p>
+                <p className="mt-2">Thank you. We have received your transfer details and will confirm your monthly block enrollment within one business day.</p>
             </div>
         );
     }
@@ -79,13 +82,29 @@ export function PaymentEnrollmentForm() {
             <div className="grid gap-4 md:grid-cols-2">
                 <div>
                     <Label htmlFor="courseSlug">Course</Label>
-                    <Input id="courseSlug" value={form.courseSlug} onChange={(e) => setForm({ ...form, courseSlug: e.target.value })} className="mt-2" />
+                    <select id="courseSlug" value={form.courseSlug} onChange={(e) => setForm({ ...form, courseSlug: e.target.value })} className="mt-2 flex h-11 w-full rounded-lg border border-input bg-background px-3 focus-ring">
+                        {courses.map((course) => (
+                            <option key={course.slug} value={course.slug}>{course.title}</option>
+                        ))}
+                    </select>
                 </div>
                 <div>
                     <Label htmlFor="planName">Plan</Label>
                     <Input id="planName" value={form.planName} onChange={(e) => setForm({ ...form, planName: e.target.value })} className="mt-2" />
                 </div>
             </div>
+            <div>
+                <Label htmlFor="preferredBlock">Preferred monthly block</Label>
+                <select id="preferredBlock" value={form.preferredBlock} onChange={(e) => setForm({ ...form, preferredBlock: e.target.value })} className="mt-2 flex h-11 w-full rounded-lg border border-input bg-background px-3 focus-ring">
+                    <option value="Monday 10:00 AM">Monday 10:00 AM</option>
+                    <option value="Tuesday 10:00 AM">Tuesday 10:00 AM</option>
+                    <option value="Wednesday 10:00 AM">Wednesday 10:00 AM</option>
+                    <option value="Thursday 10:00 AM">Thursday 10:00 AM</option>
+                    <option value="Friday 10:00 AM">Friday 10:00 AM</option>
+                    <option value="Saturday 10:00 AM">Saturday 10:00 AM</option>
+                </select>
+            </div>
+            <p className="text-sm text-muted-foreground">This is for a monthly class block. After approval, the family will choose the recurring class days and receive the Zoom link for each class in that block.</p>
             <div className="grid gap-4 md:grid-cols-2">
                 <div>
                     <Label htmlFor="amount">Amount</Label>

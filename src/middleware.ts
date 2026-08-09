@@ -18,27 +18,55 @@ const COUNTRY_MAP: Record<string, { currency: string; timezone: string; locale: 
   ZA: { currency: "ZAR", timezone: "Africa/Johannesburg", locale: "en-ZA" },
 };
 
-export function middleware(request: NextRequest) {
+const PROTECTED_API_PREFIXES = ["/api/enrollments"];
+
+export async function middleware(request: NextRequest) {
   const response = NextResponse.next();
   const country = request.headers.get("x-vercel-ip-country") ?? request.cookies.get("country")?.value ?? "US";
   const geo = COUNTRY_MAP[country] ?? COUNTRY_MAP.US;
-  const user = getSessionFromRequest(request);
+  const user = await getSessionFromRequest(request);
+  const pathname = request.nextUrl.pathname;
+  const method = request.method;
 
   response.cookies.set("country", country, { path: "/" });
   response.cookies.set("currency", geo.currency, { path: "/" });
   response.cookies.set("timezone", request.cookies.get("timezone")?.value ?? geo.timezone, { path: "/" });
   response.cookies.set("locale", geo.locale, { path: "/" });
 
-  if (request.nextUrl.pathname.startsWith("/admin") && user?.role !== "admin") {
+  if (pathname.startsWith("/admin") && user?.role !== "admin") {
     const loginUrl = new URL("/login", request.url);
-    loginUrl.searchParams.set("redirect", request.nextUrl.pathname);
+    loginUrl.searchParams.set("redirect", pathname);
     return NextResponse.redirect(loginUrl);
   }
 
-  if (request.nextUrl.pathname.startsWith("/portal") && user?.role !== "portal") {
+  if (pathname.startsWith("/portal") && user?.role !== "parent") {
     const loginUrl = new URL("/login", request.url);
-    loginUrl.searchParams.set("redirect", request.nextUrl.pathname);
+    loginUrl.searchParams.set("redirect", pathname);
     return NextResponse.redirect(loginUrl);
+  }
+
+  if (pathname.startsWith("/teacher") && user?.role !== "teacher" && user?.role !== "admin") {
+    const loginUrl = new URL("/login", request.url);
+    loginUrl.searchParams.set("redirect", pathname);
+    return NextResponse.redirect(loginUrl);
+  }
+
+  if (PROTECTED_API_PREFIXES.some((prefix) => pathname.startsWith(prefix))) {
+    if (method === "POST") {
+      return response;
+    }
+
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    if (method === "GET" && user.role !== "admin" && user.role !== "parent") {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    if (method !== "GET" && user.role !== "admin") {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
   }
 
   return response;

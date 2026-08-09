@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -10,6 +10,30 @@ import { courses } from "@/data/courses";
 import { programs } from "@/data/programs";
 import type { TimeSlot } from "@/lib/booking";
 import { generateIcsEvent } from "@/lib/dates";
+
+const COOKIE_CONSENT_NAME = "academy_cookie_consent";
+const COOKIE_CONSENT_ACCEPTED = "accepted";
+const COOKIE_CONSENT_ESSENTIAL = "essential";
+
+function readConsentCookie() {
+  if (typeof document === "undefined") return null;
+
+  const cookies = document.cookie.split(";").map((cookie) => cookie.trim());
+  const consentCookie = cookies.find((cookie) => cookie.startsWith(`${COOKIE_CONSENT_NAME}=`));
+
+  if (!consentCookie) return null;
+
+  return decodeURIComponent(consentCookie.split("=").slice(1).join("=") || "");
+}
+
+function writeConsentCookie(value: string) {
+  if (typeof document === "undefined") return;
+
+  const secure = window.location.protocol === "https:" ? "; Secure" : "";
+  const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * 365).toUTCString();
+
+  document.cookie = `${COOKIE_CONSENT_NAME}=${encodeURIComponent(value)}; Path=/; Max-Age=31536000; SameSite=Lax; Expires=${expiresAt}${secure}`;
+}
 
 const learnerSchema = z.object({
   learnerName: z.string().min(2),
@@ -77,6 +101,7 @@ export function BookingFlow({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          enrollmentType: "trial",
           courseSlug,
           programSlug: programSlug || undefined,
           teacherId: selectedSlot.teacherId,
@@ -208,7 +233,7 @@ export function BookingFlow({
 
       {step === 3 && (
         <div className="space-y-4">
-          <h2 className="font-display text-2xl">Pick a time</h2>
+          <h2 className="font-display text-2xl">Pick your trial class</h2>
           <div>
             <Label htmlFor="timezone">Your timezone</Label>
             <Input id="timezone" value={tz} onChange={(e) => setTz(e.target.value)} className="mt-2 font-mono text-sm" />
@@ -226,6 +251,7 @@ export function BookingFlow({
               >
                 <span className="font-mono">{slot.label}</span>
                 <span className="block text-muted-foreground">with {slot.teacherName}</span>
+                <span className="mt-1 block text-xs text-gold">One trial class • {slot.enrolledStudents}/{slot.capacity} enrolled</span>
               </button>
             ))}
           </div>
@@ -239,6 +265,7 @@ export function BookingFlow({
       {step === 4 && (
         <form className="space-y-4" onSubmit={contactForm.handleSubmit(submitBooking)}>
           <h2 className="font-display text-2xl">Contact details</h2>
+          <p className="text-sm text-muted-foreground">This booking is for one trial class only. After payment, you can enroll in a full monthly block and choose your recurring days.</p>
           <div>
             <Label htmlFor="contactName">Your name</Label>
             <Input id="contactName" {...contactForm.register("contactName")} className="mt-2" />
@@ -269,7 +296,7 @@ export function BookingFlow({
 
       {step === 5 && result && (
         <div className="space-y-6 text-center">
-          <h2 className="font-display text-2xl text-emerald">You&apos;re booked!</h2>
+          <h2 className="font-display text-2xl text-emerald">Trial class confirmed</h2>
           <p className="text-muted-foreground">Reference: <span className="font-mono">{result.reference}</span></p>
           <div className="glass-card p-6 text-left">
             <p><strong>Teacher:</strong> {result.teacherName}</p>
@@ -282,7 +309,7 @@ export function BookingFlow({
               <a href={result.zoomLink} target="_blank" rel="noopener noreferrer">Open Zoom link</a>
             </Button>
           </div>
-          <p className="text-sm text-muted-foreground">A confirmation email has been sent with the same details.</p>
+          <p className="text-sm text-muted-foreground">A confirmation email has been sent with the same details. After payment, you can enroll for a complete month and choose your recurring class block.</p>
         </div>
       )}
     </div>
@@ -371,7 +398,23 @@ export function TeachersFilter({ languages, specializations }: { languages: stri
 
 export function CookieConsent() {
   const [visible, setVisible] = useState(true);
+
+  useEffect(() => {
+    const consentValue = readConsentCookie();
+    if (consentValue === COOKIE_CONSENT_ACCEPTED || consentValue === COOKIE_CONSENT_ESSENTIAL) {
+      setVisible(false);
+    } else {
+      setVisible(true);
+    }
+  }, []);
+
+  function persistConsent(value: string) {
+    writeConsentCookie(value);
+    setVisible(false);
+  }
+
   if (!visible) return null;
+
   return (
     <div className="fixed bottom-16 left-4 right-4 z-50 rounded-xl border border-border bg-background p-4 shadow-lg md:bottom-4 md:left-auto md:right-4 md:max-w-md">
       <p className="text-sm text-muted-foreground">
@@ -379,8 +422,8 @@ export function CookieConsent() {
         <a href="/cookies" className="text-gold hover:underline">Cookie Policy</a>.
       </p>
       <div className="mt-3 flex gap-2">
-        <Button size="sm" onClick={() => setVisible(false)}>Accept</Button>
-        <Button size="sm" variant="outline" onClick={() => setVisible(false)}>Essential only</Button>
+        <Button size="sm" onClick={() => persistConsent(COOKIE_CONSENT_ACCEPTED)}>Accept</Button>
+        <Button size="sm" variant="outline" onClick={() => persistConsent(COOKIE_CONSENT_ESSENTIAL)}>Essential only</Button>
       </div>
     </div>
   );

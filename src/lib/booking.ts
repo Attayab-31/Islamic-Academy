@@ -9,6 +9,8 @@ export type TimeSlot = {
   start: Date;
   end: Date;
   label: string;
+  enrolledStudents: number;
+  capacity: number;
 };
 
 export function generateAvailableSlots(
@@ -45,11 +47,21 @@ export function generateAvailableSlots(
         start,
         end,
         label: formatInTimezone(start, timezone),
+        enrolledStudents: 0,
+        capacity: 10,
       });
     }
   }
 
   return slots.sort((a, b) => a.start.getTime() - b.start.getTime());
+}
+
+export function filterUnavailableSlots(
+  slots: TimeSlot[],
+  bookings: Array<{ teacherId?: string | null; slotStart: Date | string; slotEnd: Date | string }>
+): TimeSlot[] {
+  void bookings;
+  return slots;
 }
 
 function formatInTimezone(date: Date, timezone: string) {

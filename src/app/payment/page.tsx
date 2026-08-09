@@ -28,6 +28,9 @@ export default function PaymentPage() {
 
                     <div className="mt-10 glass-card p-8">
                         <h2 className="font-display text-2xl">Payment instructions</h2>
+                        <p className="mt-3 text-sm text-muted-foreground">
+                            First, the student can book a single trial class. After payment, the family can enroll in a full monthly block and choose the recurring class days for the month.
+                        </p>
                         <ul className="mt-6 space-y-3 text-muted-foreground">
                             {paymentDetails.map((item) => (
                                 <li key={item.label} className="flex justify-between gap-4 border-b border-border/60 pb-3">

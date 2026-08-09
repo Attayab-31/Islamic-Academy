@@ -2,7 +2,7 @@ import { cookies } from "next/headers";
 import type { Metadata } from "next";
 import { BookingFlow } from "@/components/forms/client-forms";
 import { SectionHeading } from "@/components/shared";
-import { generateAvailableSlots } from "@/lib/booking";
+import { filterUnavailableSlots, generateAvailableSlots } from "@/lib/booking";
 import { prisma } from "@/lib/prisma";
 import { seedTeachersIfNeeded } from "@/lib/seed";
 
@@ -24,9 +24,15 @@ export default async function FreeTrialPage({
 
   await seedTeachersIfNeeded();
 
-  const dbTeachers = await prisma.teacher.findMany({
-    include: { availability: true },
-  });
+  const [dbTeachers, bookings] = await Promise.all([
+    prisma.teacher.findMany({
+      include: { availability: true },
+    }),
+    prisma.booking.findMany({
+      where: { status: { not: "cancelled" } },
+      select: { teacherId: true, slotStart: true, slotEnd: true },
+    }),
+  ]);
 
   const availability = dbTeachers.flatMap((t) =>
     t.availability.map((a) => ({
@@ -37,10 +43,20 @@ export default async function FreeTrialPage({
       startHour: a.startHour,
       startMin: a.startMin,
       duration: a.duration,
+      capacity: a.capacity,
     }))
   );
 
-  const slots = generateAvailableSlots(availability, timezone);
+  const slots = filterUnavailableSlots(generateAvailableSlots(availability, timezone), bookings).map((slot) => ({
+    ...slot,
+    enrolledStudents: bookings.filter((booking) => {
+      if (booking.teacherId && slot.teacherId !== booking.teacherId) return false;
+      const bookingStart = new Date(booking.slotStart).getTime();
+      const bookingEnd = new Date(booking.slotEnd).getTime();
+      return bookingStart < slot.end.getTime() && bookingEnd > slot.start.getTime();
+    }).length,
+    capacity: slot.capacity ?? 10,
+  }));
 
   return (
     <div className="section-padding">

@@ -1,0 +1,13 @@
+{
+    "$schema": "https://openapi.vercel.sh/vercel.json",
+    "framework": "nextjs",
+    "buildCommand": "npm run db:generate && npm run build",
+    "installCommand": "npm install",
+    "outputDirectory": ".next",
+    "crons": [
+        {
+            "path": "/api/cron/monthly-blocks",
+            "schedule": "*/5 * * * *"
+        }
+    ]
+}

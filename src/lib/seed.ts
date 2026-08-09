@@ -1,5 +1,44 @@
 import { teachers } from "@/data/teachers";
 import { prisma } from "@/lib/prisma";
+import { hashPassword } from "@/lib/auth";
+import { UserRole } from "@prisma/client";
+
+export async function seedAuthUsers() {
+  const adminEmail = process.env.ADMIN_EMAIL?.trim().toLowerCase() || "admin@islamicacademy.local";
+  const adminPassword = process.env.ADMIN_PASSWORD || "academy2026";
+  const portalEmail = process.env.PORTAL_EMAIL?.trim().toLowerCase() || "portal@islamicacademy.local";
+  const portalPassword = process.env.PORTAL_PASSWORD || "academy2026";
+
+  const existingUsers = await prisma.user.findMany({
+    where: { email: { in: [adminEmail, portalEmail] } },
+    select: { email: true },
+  });
+  const existingEmails = new Set(existingUsers.map((user) => user.email));
+
+  if (!existingEmails.has(adminEmail)) {
+    await prisma.user.create({
+      data: {
+        email: adminEmail,
+        name: "Admin User",
+        passwordHash: await hashPassword(adminPassword),
+        role: UserRole.ADMIN,
+        emailVerified: new Date(),
+      },
+    });
+  }
+
+  if (!existingEmails.has(portalEmail)) {
+    await prisma.user.create({
+      data: {
+        email: portalEmail,
+        name: "Family Portal User",
+        passwordHash: await hashPassword(portalPassword),
+        role: UserRole.PARENT,
+        emailVerified: new Date(),
+      },
+    });
+  }
+}
 
 export async function seedTeachersIfNeeded() {
   const existingTeachers = await prisma.teacher.findMany({

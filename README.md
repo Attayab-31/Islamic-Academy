@@ -18,4 +18,6 @@ This project is a production-ready Next.js application for an international onli
 ## Production readiness notes
 - The app uses server components by default and a dynamic API-driven booking/enrollment flow.
 - Admin review pages and operations views are present for family onboarding.
-- Additional production hardening such as auth, email delivery, and webhook-driven payment confirmation can be layered on top of this foundation.
+- Monthly block enrollments now create recurring class sessions and send reminder emails before each class starts.
+- The cron endpoint for monthly blocks is available at /api/cron/monthly-blocks and should be protected with a CRON_SECRET in production.
+- For local testing, call the cron endpoint with the same secret in the x-cron-secret header.

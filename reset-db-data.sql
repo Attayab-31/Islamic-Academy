@@ -1,0 +1,10 @@
+PRAGMA foreign_keys = OFF;
+DELETE FROM "BookingAuditEvent";
+DELETE FROM "Booking";
+DELETE FROM "AvailabilitySlot";
+DELETE FROM "Enrollment";
+DELETE FROM "PasswordResetToken";
+DELETE FROM "Teacher";
+DELETE FROM "Lead";
+DELETE FROM "User";
+PRAGMA foreign_keys = ON;
