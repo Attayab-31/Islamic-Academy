@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { getSessionFromRequest } from "@/lib/auth";
+import { getSessionFromRequest } from "@/lib/auth-session";
 
 const COUNTRY_MAP: Record<string, { currency: string; timezone: string; locale: string }> = {
   US: { currency: "USD", timezone: "America/New_York", locale: "en-US" },

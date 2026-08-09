@@ -1,18 +1,18 @@
 import { cookies } from "next/headers";
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { UserRole } from "@prisma/client";
 import bcrypt from "bcryptjs";
-import { SignJWT, jwtVerify } from "jose";
+import { SignJWT } from "jose";
 import { prisma } from "@/lib/prisma";
+import {
+  type AuthRole,
+  type AuthUser,
+  getAuthSecret,
+  verifySessionToken,
+} from "@/lib/auth-session";
 
-export type AuthRole = "admin" | "parent" | "teacher";
-
-export type AuthUser = {
-  id: string;
-  email: string;
-  role: AuthRole;
-  name: string;
-};
+export type { AuthRole, AuthUser };
+export { verifySessionToken, getSessionFromRequest } from "@/lib/auth-session";
 
 const SESSION_COOKIE_NAME = "academy_session";
 const SESSION_TTL_SECONDS = 60 * 60 * 8;
@@ -22,19 +22,6 @@ function mapRole(role: UserRole): AuthRole {
   if (role === UserRole.ADMIN) return "admin";
   if (role === UserRole.TEACHER) return "teacher";
   return "parent";
-}
-
-export function getAuthSecret() {
-  const secret = process.env.AUTH_SECRET;
-
-  if (process.env.NODE_ENV === "production") {
-    if (!secret || secret.length < 32) {
-      throw new Error("AUTH_SECRET must be set to at least 32 characters in production.");
-    }
-    return secret;
-  }
-
-  return secret ?? "local-dev-auth-secret-change-me-before-production";
 }
 
 function getSecretKey() {
@@ -60,33 +47,6 @@ export async function createSessionToken(user: AuthUser) {
     .setIssuedAt()
     .setExpirationTime(`${SESSION_TTL_SECONDS}s`)
     .sign(getSecretKey());
-}
-
-export async function verifySessionToken(token: string | undefined): Promise<AuthUser | null> {
-  if (!token) return null;
-
-  try {
-    const { payload } = await jwtVerify(token, getSecretKey(), {
-      algorithms: ["HS256"],
-    });
-
-    if (!payload.sub || typeof payload.email !== "string" || typeof payload.role !== "string") {
-      return null;
-    }
-
-    if (payload.role !== "admin" && payload.role !== "parent" && payload.role !== "teacher") {
-      return null;
-    }
-
-    return {
-      id: payload.sub,
-      email: payload.email,
-      role: payload.role,
-      name: typeof payload.name === "string" ? payload.name : payload.email,
-    };
-  } catch {
-    return null;
-  }
 }
 
 export function toAuthUser(user: {
@@ -275,10 +235,6 @@ export function clearSessionCookie(response: NextResponse) {
     path: "/",
     maxAge: 0,
   });
-}
-
-export async function getSessionFromRequest(request: NextRequest) {
-  return verifySessionToken(request.cookies.get(SESSION_COOKIE_NAME)?.value);
 }
 
 export function authRedirectPath(role: AuthRole) {
