@@ -191,35 +191,49 @@ export async function createTeacherUser(input: { name: string; email: string; pa
   }
 
   const passwordHash = await hashPassword(input.password);
-  const user = await prisma.$transaction(async (tx) => {
-    const createdUser = await tx.user.create({
-      data: {
-        email: normalizedEmail,
-        name: input.name.trim(),
-        passwordHash,
-        role: UserRole.TEACHER,
-        emailVerified: new Date(),
-      },
+
+  try {
+    const user = await prisma.$transaction(async (tx) => {
+      const createdUser = await tx.user.create({
+        data: {
+          email: normalizedEmail,
+          name: input.name.trim(),
+          passwordHash,
+          role: UserRole.TEACHER,
+          emailVerified: new Date(),
+        },
+      });
+
+      const slug = input.name.trim().toLowerCase().replace(/[^a-z0-9-]+/g, "-");
+      await tx.teacher.create({
+        data: {
+          name: input.name.trim(),
+          slug: `${slug}-${createdUser.id.slice(0, 6)}`,
+          gender: "female",
+          languages: "English",
+          specializations: "Quran",
+          email: normalizedEmail,
+          timezone: "UTC",
+          userId: createdUser.id,
+        },
+      });
+
+      return createdUser;
     });
 
-    const slug = input.name.trim().toLowerCase().replace(/[^a-z0-9-]+/g, "-");
-    await tx.teacher.create({
-      data: {
-        name: input.name.trim(),
-        slug: `${slug}-${createdUser.id.slice(0, 6)}`,
-        gender: "female",
-        languages: "English",
-        specializations: "Quran",
-        email: normalizedEmail,
-        timezone: "UTC",
-        userId: createdUser.id,
-      },
-    });
+    return toAuthUser(user);
+  } catch (error) {
+    if (
+      typeof error === "object" &&
+      error !== null &&
+      "code" in error &&
+      error.code === "P2002"
+    ) {
+      throw new Error("EMAIL_EXISTS");
+    }
 
-    return createdUser;
-  });
-
-  return toAuthUser(user);
+    throw error;
+  }
 }
 
 export async function getCurrentUser() {

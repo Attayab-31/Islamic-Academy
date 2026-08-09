@@ -3,10 +3,11 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { formatCurrency } from "@/lib/utils";
 import { revalidatePath } from "next/cache";
-import { createTeacherUser, getCurrentUser } from "@/lib/auth";
+import { getCurrentUser } from "@/lib/auth";
 import { getEnrollmentAccessState } from "@/lib/enrollment-access";
 import { collectAvailabilitySlotInputs, findConflictingSlots } from "@/lib/availability";
 import { AvailabilityForm } from "@/components/admin/availability-form";
+import { TeacherLoginForm } from "@/components/admin/teacher-login-form";
 import { generateMonthlyBlockSessionsForEnrollment } from "@/lib/monthly-blocks";
 import { deleteTeacherAndLogin } from "@/lib/teacher-admin";
 import { UserRole } from "@prisma/client";
@@ -14,26 +15,6 @@ import { UserRole } from "@prisma/client";
 const weekdayLabels = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
 export const dynamic = "force-dynamic";
-
-async function createTeacherLogin(formData: FormData) {
-    "use server";
-
-    const user = await getCurrentUser();
-    if (!user || user.role !== "admin") {
-        throw new Error("Unauthorized");
-    }
-
-    const name = formData.get("name")?.toString()?.trim();
-    const email = formData.get("email")?.toString()?.trim().toLowerCase();
-    const password = formData.get("password")?.toString();
-
-    if (!name || !email || !password || password.trim().length < 8) {
-        throw new Error("Teacher name, email, and password are required.");
-    }
-
-    await createTeacherUser({ name, email, password });
-    revalidatePath("/admin");
-}
 
 async function updateStatus(formData: FormData) {
     "use server";
@@ -390,23 +371,7 @@ export default async function AdminPage() {
                     </div>
 
                     <div className="mt-4 rounded-xl border border-border bg-muted/30 p-4">
-                        <form action={createTeacherLogin} className="grid gap-3 md:grid-cols-4">
-                            <label className="space-y-1 text-xs font-medium text-muted-foreground">
-                                <span>Teacher full name</span>
-                                <input name="name" placeholder="Dr Mazhar Javed" className="w-full rounded border border-border bg-background px-2 py-2 text-sm" required />
-                            </label>
-                            <label className="space-y-1 text-xs font-medium text-muted-foreground">
-                                <span>Login email</span>
-                                <input name="email" type="email" placeholder="teacher@example.com" className="w-full rounded border border-border bg-background px-2 py-2 text-sm" required />
-                            </label>
-                            <label className="space-y-1 text-xs font-medium text-muted-foreground">
-                                <span>Password</span>
-                                <input name="password" type="password" placeholder="Minimum 8 characters" minLength={8} className="w-full rounded border border-border bg-background px-2 py-2 text-sm" required />
-                            </label>
-                            <div className="flex items-end">
-                                <button type="submit" className="w-full rounded bg-gold px-3 py-2 text-sm font-medium text-night">Create login</button>
-                            </div>
-                        </form>
+                        <TeacherLoginForm />
                     </div>
                 </section>
 

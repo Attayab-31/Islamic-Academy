@@ -20,6 +20,10 @@ const COUNTRY_MAP: Record<string, { currency: string; timezone: string; locale: 
 
 const PROTECTED_API_PREFIXES = ["/api/enrollments"];
 
+function isServerActionRequest(request: NextRequest) {
+  return request.headers.has("next-action") || request.headers.has("Next-Action");
+}
+
 export async function middleware(request: NextRequest) {
   const response = NextResponse.next();
   const country = request.headers.get("x-vercel-ip-country") ?? request.cookies.get("country")?.value ?? "US";
@@ -27,6 +31,7 @@ export async function middleware(request: NextRequest) {
   const user = await getSessionFromRequest(request);
   const pathname = request.nextUrl.pathname;
   const method = request.method;
+  const serverAction = isServerActionRequest(request);
 
   response.cookies.set("country", country, { path: "/" });
   response.cookies.set("currency", geo.currency, { path: "/" });
@@ -34,18 +39,30 @@ export async function middleware(request: NextRequest) {
   response.cookies.set("locale", geo.locale, { path: "/" });
 
   if (pathname.startsWith("/admin") && user?.role !== "admin") {
+    if (serverAction) {
+      return response;
+    }
+
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("redirect", pathname);
     return NextResponse.redirect(loginUrl);
   }
 
   if (pathname.startsWith("/portal") && user?.role !== "parent") {
+    if (serverAction) {
+      return response;
+    }
+
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("redirect", pathname);
     return NextResponse.redirect(loginUrl);
   }
 
   if (pathname.startsWith("/teacher") && user?.role !== "teacher" && user?.role !== "admin") {
+    if (serverAction) {
+      return response;
+    }
+
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("redirect", pathname);
     return NextResponse.redirect(loginUrl);
